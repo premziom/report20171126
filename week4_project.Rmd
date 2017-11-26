@@ -1,0 +1,138 @@
+The impact of weather events on healt and economy
+=====================================================================
+Synopsis
+=======================
+The aim of the report is to explore the NOAA Storm Database and answer some basic questions about severe weather events. The main goal is to identifz the events which are most harmful with respect to population health and which have the greatest economic consequences.
+
+
+Data Processing
+=======================
+Loading and Processing the Raw Data
+
+The data used for the report, comes from the U.S. National Oceanic and Atmospheric Administration's (NOAA). The database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+Reading in all data from https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2
+
+```{r reading data from web}
+#downloading zip file  
+url='https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2'
+file='repdata%2Fdata%2FStormData.csv'
+if (!file.exists(file)){
+  url
+  download.file(url,file)
+}  
+#reading data
+DataIn<-read.csv(file)
+```
+
+Dataset contains 37 variables, however only healt and economy related variables will be needed for further research. Only those variables will be selected.
+```{r}
+DataIn<-DataIn[,c("BGN_DATE","EVTYPE","FATALITIES","INJURIES","PROPDMG","PROPDMGEXP","CROPDMG","CROPDMGEXP")]
+```
+
+Summary for the dataset:
+```{r}
+head(DataIn)
+summary(DataIn)
+```
+PROPDMGEXP and CROPDMGEXP needed to be recoded to create new variables witch the value of PROPDMG and CROPDMG
+```{r}
+unique(DataIn$PROPDMGEXP)
+unique(DataIn$CROPDMGEXP)
+
+DataIn$EXPPROP[DataIn$PROPDMGEXP=='H'|DataIn$PROPDMGEXP=='h'||DataIn$PROPDMGEXP=='2']<-100
+DataIn$EXPPROP[DataIn$PROPDMGEXP=='K'|DataIn$PROPDMGEXP=='k'|DataIn$PROPDMGEXP=='3']<-1000
+DataIn$EXPPROP[DataIn$PROPDMGEXP=='4']<-10000
+DataIn$EXPPROP[DataIn$PROPDMGEXP=='5']<-100000
+DataIn$EXPPROP[DataIn$PROPDMGEXP=='M'|DataIn$PROPDMGEXP=='m'|DataIn$PROPDMGEXP=='6']<-1000000
+DataIn$EXPPROP[DataIn$PROPDMGEXP=='7']<-10000000
+DataIn$EXPPROP[DataIn$PROPDMGEXP=='8']<-10000000
+DataIn$EXPPROP[DataIn$PROPDMGEXP=='B']<-1000000000
+DataIn$EXPPROP[DataIn$PROPDMGEXP==''|DataIn$PROPDMGEXP=='0']<-1
+DataIn$EXPPROP[DataIn$PROPDMGEXP=='-'|DataIn$PROPDMGEXP=='?'|DataIn$PROPDMGEXP=='+']<-0
+
+DataIn$PROPDMG2<-DataIn$PROPDMG*DataIn$EXPPROP
+
+
+DataIn$EXPCROP[DataIn$CROPDMGEXP=='?']<-0
+DataIn$EXPCROP[DataIn$CROPDMGEXP=='0']<-1
+DataIn$EXPCROP[DataIn$CROPDMGEXP=='2']<-100
+DataIn$EXPCROP[DataIn$CROPDMGEXP=='K'|DataIn$CROPDMGEXP=='k']<-1000
+DataIn$EXPCROP[DataIn$CROPDMGEXP=='M'|DataIn$CROPDMGEXP=='m']<-1000000
+DataIn$EXPCROP[DataIn$CROPDMGEXP=='B']<-1000000000
+
+DataIn$CROPDMG2<-DataIn$CROPDMG*DataIn$EXPCROP
+
+```
+
+
+EVENTS WITH HIGEST INJURIES AND FATALITIES
+==========================================
+
+
+TOTALS WERE CALCULATED AND THE TOP 10 EVENTS WERE CHOSEN
+```{r}
+
+FATALITIESAgg<-aggregate(FATALITIES~EVTYPE,data=DataIn,sum)
+Top10Fatalities<-FATALITIESAgg[order(-FATALITIESAgg$FATALITIES),][1:10,]
+
+INJURIESAgg<-aggregate(INJURIES~EVTYPE,data=DataIn,sum)
+Top10Injuries<-INJURIESAgg[order(-INJURIESAgg$INJURIES),][1:10,]
+
+```
+
+THE TOP 10 EVENTS WITH HIGHEST INJURIES AND FATALITIES
+```{r}
+Top10Injuries
+
+Top10Fatalities
+
+
+barplot(Top10Injuries$INJURIES, names.arg=Top10Injuries$EVTYPE,main="EVENTS WITH HIGHEST INJURIES ")
+
+barplot(Top10Fatalities$FATALITIES, names.arg=Top10Fatalities$EVTYPE,main="EVENTS WITH HIGEST FATALITIES ")
+
+```
+
+
+EVENTS WITH HIGEST IMPACT ON ECONOMY
+==========================================
+
+
+TOTALS WERE CALCULATED AND THE TOP 10 EVENTS WERE CHOSEN
+
+
+Total damages for each weather Events.
+```{r}
+
+CropDmgAgg<-aggregate(CROPDMG2~EVTYPE,data=DataIn,sum)
+Top10CropDmg<-CropDmgAgg[order(-CropDmgAgg$CROPDMG2),][1:10,]
+
+PropDmgAgg<-aggregate(PROPDMG2~EVTYPE,data=DataIn,sum)
+Top10PropDmg<-PropDmgAgg[order(-PropDmgAgg$PROPDMG2),][1:10,]
+```
+
+
+
+THE TOP 10 EVENTS WITH HIGHEST PROPERTY AND CROP DAMAGES
+
+```{r}
+Top10PropDmg
+
+Top10CropDmg
+
+par(mfrow = c(2, 1))
+
+barplot(Top10PropDmg$PROPDMG2, names.arg=Top10PropDmg$EVTYPE,main="EVENTS WITH THE HIGHEST PROPERTY DAMAGES ")
+barplot(Top10CropDmg$CROPDMG2, names.arg=Top10CropDmg$EVTYPE,main="EVENTS WITH THE HIGHEST CROP DAMAGES ")
+
+
+```
+RESULTS
+=======
+
+Tornados were the top reason for fatalities as well for injuries.
+
+The highest property damage was caused by and Drought caused the highest crop damage.
+
+
